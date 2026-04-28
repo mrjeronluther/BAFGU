@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>INSPECTION REPORT</title>
+
+    <!-- Vue 3 from CDN -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    
+    <!-- Bootstrap CSS from CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+    <style>
+        /* General App Styling */
+        body {
+            background-color: white;
+        }
+
+        #app {
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+
+        #app.loaded {
+            opacity: 1;
+        }
+
+        /* Initial Page Loader */
+        .page-loader {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: white;
+            z-index: 9999;
+        }
+        .page-loader img {
+            width: 300px;
+            max-width: 80vw;
+            height: auto;
+            animation: blink 1.2s infinite;
+        }
+        @keyframes blink {
+            50% { opacity: 0.2; }
+        }
+
+        /* Sticky Table Styles */
+        .scrollable-table {
+            max-height: 450px;
+            overflow: auto;
+            border: 1px solid #dee2e6;
+            border-radius: .25rem;
+        }
+        .sticky-header th {
+            position: sticky;
+            top: 0;
+            background: #e9ecef;
+            z-index: 2;
+        }
+        .sticky-left {
+            position: sticky;
+            left: 0;
+            background-color: #e9ecef;
+            z-index: 1;
+            font-weight: bold;
+        }
+        .sticky-header th.sticky-left {
+            z-index: 3;
+        }
+
+        /* Loading/Status Overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1050;
+        }
+        .loading-box {
+            background: white;
+            padding: 2rem 3rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        /* Success Modal */
+        .success-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1050;
+        }
+        .success-modal .modal-content-custom {
+            background: white;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Initial Page Loader -->
+    <div id="page-loader" class="page-loader">
+        <img src="https://d2nnykqiaju69u.cloudfront.net/pslife_photos/Maricel_temp/logos/megaworld%20lifestyel%20malls.png" alt="Loading..." />
+    </div>
+
+    <!-- Vue App Container -->
+    <div id="app">
+        <!-- Main Application Container -->
+        <div class="container my-4">
+            <!-- Back Button - Top Left -->
+              <div class="position-fixed top-0 start-0 p-2 z-3">
+                <a href="https://script.google.com/macros/s/AKfycbxZ5K1hZiY7yo8PNlHJVFnJTsI_TMlA3k1kc-t5_CF1ysBWc1q2jOGNqyw03Kd7oKpO8Q/exec"
+                  class="btn btn-success btn-sm"
+                  target="_top"
+                  rel="noopener noreferrer">
+                  BACK
+                </a>
+              </div>
+
+
+            <!-- Header Image -->
+           <div class="text-center mb-4">
+            <img 
+              src="https://d2nnykqiaju69u.cloudfront.net/pslife_photos/Maricel_temp/logos/megaworld%20lifestyel%20malls.png" 
+              alt="Header Image" 
+              class="img-fluid" 
+              style="max-width: 100%; width: 350px; margin-left: 35px;" 
+            />
+          </div>
+
+            <h2 class="text-center mb-4">
+                INSPECTION REPORT - BASIC AMBIENT FEATURES & GENERAL UPKEEP
+            </h2>
+
+            <!-- Form Inputs -->
+            <div class="row g-3">
+                <div class="col-md-6 form-group">
+                    <label for="email" class="form-label">Email</label>
+                    <input type="email" id="email" v-model="formData.email" class="form-control" placeholder="example@gmail.com" required />
+                </div>
+                <div class="col-md-6 form-group">
+                    <label for="name" class="form-label">Name</label>
+                    <input type="text" id="name" v-model="formData.name" class="form-control" placeholder="Enter your name" required />
+                </div>
+                <div class="col-md-6 form-group">
+                    <label for="fgi" class="form-label">Function / Group of Inspector</label>
+                    <select id="fungrp" v-model="formData.selectedFgi" class="form-select" required>
+                        <option value="" disabled>Select a Function</option>
+                        <option v-for="func in staticData.functions" :key="func" :value="func">{{ func }}</option>
+                    </select>
+                </div>
+                <div class="col-md-6 form-group">
+                    <label for="agn" class="form-label">Agency</label>
+                    <select id="agn" v-model="formData.selectedAgn" class="form-select" required>
+                        <option value="" disabled>Select an Agency</option>
+                        <option v-for="agency in staticData.agencies" :key="agency" :value="agency">{{ agency }}</option>
+                    </select>
+                </div>
+                <div class="col-12 form-group">
+                    <label for="sheets" class="form-label">Select a Property</label>
+                    <select id="sheets" v-model="formData.selectedSheet" class="form-select" required>
+                        <option value="" disabled>Select a property</option>
+                        <option v-for="sheet in sheets" :key="sheet" :value="sheet">{{ sheet }}</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Dynamic Table -->
+            <div v-if="headers.length" class="form-group mt-4">
+                <label class="form-label">
+                    <i>Note: Check the box if there is a deficiency and attach a photo.</i>
+                </label>
+                <div class="scrollable-table">
+                    <table class="table table-bordered mb-0">
+                        <thead class="sticky-header">
+                            <tr>
+                                <th class="sticky-left"></th>
+                                <th v-for="header in headers" :key="header">{{ header }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="(row, rowIndex) in rowHeaders" :key="rowIndex">
+                                <td class="sticky-left">{{ row }}</td>
+                                <td v-for="(header, colIndex) in headers" :key="colIndex" class="text-center">
+                                    <input type="checkbox" class="form-check-input" :checked="isDeficiencyChecked(header, row)" @change="handleCheckboxChange(header, row)" />
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Deficiency Details (File Uploads and Notes) -->
+            <div v-if="deficiencies.length" class="mt-4">
+                <h4 class="mb-3">Deficiency Details</h4>
+                <div v-for="def in deficiencies" :key="def.key" class="card card-body mb-3">
+                    <label class="fw-bold fs-5">Deficiency: {{ def.key }}</label>
+                    <div class="mt-2">
+                        <label :for="`file-${def.key}`" class="form-label">Upload Image</label>
+                        <input type="file" :id="`file-${def.key}`" @change="handleFileChange($event, def.key)" class="form-control" accept="image/jpeg,image/png" required capture="camera" />
+                    </div>
+                    <div class="mt-2">
+                        <label :for="`note-${def.key}`" class="form-label">Note</label>
+                        <input type="text" :id="`note-${def.key}`" v-model="def.note" class="form-control" placeholder="Enter a note for the deficiency" required/>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <button class="btn btn-primary mt-4 w-100 py-2 fs-5" @click="submitForm" :disabled="isSubmitting">
+                <span v-if="isSubmitting" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                {{ isSubmitting ? 'Submitting...' : 'Submit' }}
+            </button>
+
+            <!-- Footer -->
+            <div class="text-center mt-5">
+                <p style="font-size: 12px; color: #888;">© {{ currentYear }} Megaworld Lifestyle Malls. All rights reserved.</p>
+            </div>
+        </div>
+
+        <!-- Loading/Status Overlay -->
+        <div v-if="isLoading" class="loading-overlay">
+            <div class="loading-box">
+                <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;"></div>
+                <p class="mb-0 fs-5">{{ loadingMessage }}</p>
+            </div>
+        </div>
+
+        <!-- Success Modal -->
+        <div v-if="showSuccessModal" class="success-modal">
+            <div class="modal-content-custom">
+                <h4 class="text-success mb-3">Submission Successful!</h4>
+                <p>Your form has been submitted. Thank you!</p>
+                <button @click="closeSuccessModal" class="btn btn-primary">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, reactive, onMounted, watch } = Vue;
+
+        const app = createApp({
+            setup() {
+                // --- State Management ---
+                const isLoading = ref(false);
+                const isSubmitting = ref(false);
+                const loadingMessage = ref('');
+                const showSuccessModal = ref(false);
+                const currentYear = new Date().getFullYear();
+
+                const formData = reactive({
+                    name: '',
+                    email: '',
+                    selectedFgi: '',
+                    selectedAgn: '',
+                    selectedSheet: '',
+                });
+
+                const sheets = ref([]);
+                const headers = ref([]);
+                const rowHeaders = ref([]);
+                const deficiencies = ref([]); // An array of objects: { key: 'Row - Header', note: '', file: null }
+                const uploadedFiles = reactive({});
+
+                // --- Static Data ---
+                const staticData = {
+                    functions: ["Housekeeping", "Security", "Technical Maintenance", "Concierge", "Cashier", "Tenant Relation", "Office Assistant", "Mall Officer", "Mall Manager", "LANDSCAPE MAINTENANCE", "Others"],
+                    agencies: ["Luxury Global", "Megaworld", "1957", "51ST", "7LIONS", "ACCURATE", "AGILEX", "AIMONE", "ALLAROUND", "ATALIAN", "AUDACIOUS", "BRIGHTLEAGUE", "BLUECOLLAR", "BMS", "CAPITAL", "CLEANEDGE", "CMPT", "COUNTERPOINT", "CRH", "DOGTAG", "EO", "FARAGON", "FIRSTDELTA", "HACKETT", "ILOILOAA", "JOBCLEAN", "JOLLY", "JSL", "KARES", "KUBLAI", "MANINVEST", "MANSION", "OMNI", "ONESOURCE", "PMGI", "POLYSTAR", "PRIMEPOWER", "PRIVILEGE", "SFI", "SHAREDSOL", "SHERPA", "SHOOTERS", "SLVERARROW", "SMSI", "SUPERCLEAN", "THEOS", "UK9", "WORLDCUP", "MOMENTUM", "AROMA", "VERYANCY", "COMCEN", "PSMC", "RMS", "GOLFORCE"]
+                };
+
+                // --- Helper for Google Apps Script ---
+                const runGoogleScript = (functionName, ...args) => {
+                    return new Promise((resolve, reject) => {
+                        if (typeof google === 'undefined' || !google.script) {
+                             // This allows for local testing without the Google environment
+                             console.warn("Google Script API not found. Running in local dev mode.");
+                             if (functionName === 'getSheets') return resolve(['Test Property 1', 'Test Property 2']);
+                             if (functionName === 'getHeaders') return resolve({ headers: ['Header A', 'Header B'], rows: ['Row 1', 'Row 2'] });
+                             if (functionName === 'submitFormWithFiles') return resolve('Success');
+                             return reject(new Error("Google Script API not found."));
+                        }
+                        google.script.run
+                            .withSuccessHandler(resolve)
+                            .withFailureHandler(reject)
+                            [functionName](...args);
+                    });
+                };
+
+                // --- Core Methods ---
+                const fetchSheets = async () => {
+                    try {
+                        const sheetNames = await runGoogleScript('getSheets');
+                        sheets.value = sheetNames.filter(sheet => sheet !== 'database');
+                    } catch (error) {
+                        console.error("Error fetching sheets:", error);
+                        alert("Failed to load property list. Please refresh the page.");
+                    }
+                };
+
+                const fetchHeadersAndRows = async (sheetName) => {
+                    if (!sheetName) return;
+                    isLoading.value = true;
+                    loadingMessage.value = 'Loading property data...';
+                    try {
+                        const { headers: newHeaders, rows: newRows } = await runGoogleScript('getHeaders', sheetName);
+                        headers.value = newHeaders;
+                        rowHeaders.value = newRows;
+                    } catch (error) {
+                        console.error("Error fetching headers and rows:", error);
+                        alert("Failed to load data for the selected property. Please try again.");
+                    } finally {
+                        isLoading.value = false;
+                    }
+                };
+
+                const handleCheckboxChange = (header, row) => {
+                    const key = `${row} - ${header}`;
+                    const index = deficiencies.value.findIndex(d => d.key === key);
+
+                    if (index > -1) {
+                        deficiencies.value.splice(index, 1);
+                        delete uploadedFiles[key];
+                    } else {
+                        deficiencies.value.push({ key, note: '', file: null });
+                    }
+                };
+
+                const isDeficiencyChecked = (header, row) => {
+                    const key = `${row} - ${header}`;
+                    return deficiencies.value.some(d => d.key === key);
+                };
+
+                const handleFileChange = (event, key) => {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    const validMimeTypes = ["image/jpeg", "image/png"];
+                    if (!validMimeTypes.includes(file.type)) {
+                        alert("Only JPG and PNG files are allowed.");
+                        event.target.value = "";
+                        return;
+                    }
+                    if (file.size > 10 * 1024 * 1024) { // 10MB limit
+                        alert("File is too large (10MB limit).");
+                        event.target.value = "";
+                        return;
+                    }
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        uploadedFiles[key] = {
+                            name: file.name,
+                            data: e.target.result.split(",")[1], // Base64 part
+                            mimeType: file.type,
+                        };
+                        const def = deficiencies.value.find(d => d.key === key);
+                        if (def) def.file = file;
+                    };
+                    reader.readAsDataURL(file);
+                };
+
+                const validateForm = () => {
+                    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!formData.email || !emailPattern.test(formData.email) || !formData.name || !formData.selectedSheet || !formData.selectedFgi || !formData.selectedAgn) {
+                        alert("Please fill in all inspector and property details at the top.");
+                        return false;
+                    }
+                    if (deficiencies.value.length === 0) {
+                        alert("Please check at least one deficiency in the table.");
+                        return false;
+                    }
+                    for (const def of deficiencies.value) {
+                        if (!def.note.trim()) {
+                            alert(`Please provide a note for the deficiency: "${def.key}"`);
+                            return false;
+                        }
+                        if (!def.file) {
+                            alert(`Please upload an image for the deficiency: "${def.key}"`);
+                            return false;
+                        }
+                    }
+                    return true;
+                };
+
+                const submitForm = async () => {
+                    if (isSubmitting.value || !validateForm()) return;
+
+                    isSubmitting.value = true;
+                    isLoading.value = true;
+                    loadingMessage.value = 'Submitting form...';
+
+                    const timestamp = new Date().getTime();
+                    const randomNum = Math.floor(Math.random() * 1000000);
+                    const referenceNumber = `REF-${timestamp}-${randomNum}`;
+                    
+                    const submissionData = {
+                        email: formData.email,
+                        name: formData.name,
+                        selectedFgi: formData.selectedFgi,
+                        selectedagn: formData.selectedAgn, // Use original key name for GAS
+                        selectedSheet: formData.selectedSheet,
+                        referenceNumber: referenceNumber,
+                        headers: deficiencies.value.map(d => d.key),
+                        notes: deficiencies.value.reduce((acc, d) => {
+                            acc[d.key] = d.note;
+                            return acc;
+                        }, {}),
+                    };
+                    
+                    try {
+                        await runGoogleScript('submitFormWithFiles', submissionData, uploadedFiles);
+                        showSuccessModal.value = true;
+                        resetFormForNewSubmission();
+                    } catch (error) {
+                        console.error("Error submitting form:", error);
+                        alert(error.message || "An unknown error occurred during submission. Please try again.");
+                    } finally {
+                        isSubmitting.value = false;
+                        isLoading.value = false;
+                    }
+                };
+                
+                const resetFormForNewSubmission = () => {
+                    formData.name = '';
+                    formData.email = '';
+                    // Keep property selected for potentially another submission on the same property
+                    deficiencies.value = [];
+                    Object.keys(uploadedFiles).forEach(key => delete uploadedFiles[key]);
+                };
+
+                const closeSuccessModal = () => {
+                    showSuccessModal.value = false;
+                };
+
+                // --- Lifecycle & Watchers ---
+                onMounted(async () => {
+                    await fetchSheets();
+                    // Hide initial page loader and show app
+                    document.getElementById('page-loader').style.display = 'none';
+                    document.getElementById('app').classList.add('loaded');
+                });
+
+                watch(() => formData.selectedSheet, (newSheet) => {
+                    headers.value = [];
+                    rowHeaders.value = [];
+                    deficiencies.value = [];
+                    Object.keys(uploadedFiles).forEach(key => delete uploadedFiles[key]);
+                    if (newSheet) {
+                        fetchHeadersAndRows(newSheet);
+                    }
+                });
+
+                return {
+                    // State
+                    isLoading,
+                    isSubmitting,
+                    loadingMessage,
+                    showSuccessModal,
+                    currentYear,
+                    formData,
+                    sheets,
+                    headers,
+                    rowHeaders,
+                    deficiencies,
+                    staticData,
+                    // Methods
+                    submitForm,
+                    handleCheckboxChange,
+                    isDeficiencyChecked,
+                    handleFileChange,
+                    closeSuccessModal
+                };
+            }
+        });
+        
+        app.mount('#app');
+    </script>
+</body>
+</html>
+
+function doGet() {
+    var html = HtmlService.createHtmlOutputFromFile('Untitled')  //maintenancepage , Untitled
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1')
+    .setTitle('INSPECTION REPORT - BASIC AMBIENT FEATURES & GENERAL UPKEEP');
+  return html;
+}
+
+
+
+function getSheets() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheets = ss.getSheets();
+    return sheets
+      .map((sheet) => sheet.getName())
+      .filter((name) => name !== "Sheet1");
+  } catch (e) {
+    throw new Error("Error fetching sheet names: " + e.message);
+  }
+}
+
+function getHeaders(sheetName) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(sheetName);
+    if (!sheet) throw new Error("Sheet not found.");
+
+    const headers = sheet
+      .getRange(1, 1, 1, sheet.getLastColumn())
+      .getValues()[0];
+    const rows = sheet
+      .getRange(2, 1, sheet.getLastRow() - 1, 1)
+      .getValues()
+      .flat();
+    return { headers, rows };
+  } catch (e) {
+    throw new Error("Error fetching headers: " + e.message);
+  }
+}
+function submitFormWithFiles(data, files) {
+  try {
+    const targetSpreadsheetId = "1NSHDRTgn3Z2E5rOE8XJjVww5Wb-7AtQyjNjXis6_sK4"; // Replace with your target spreadsheet ID
+    const ss = SpreadsheetApp.openById(targetSpreadsheetId);
+
+    // Dynamically determine the target sheet based on user selection
+    let databaseSheet = ss.getSheetByName(data.selectedSheet);
+    if (!databaseSheet) {
+      databaseSheet = ss.insertSheet(data.selectedSheet);
+    }
+
+    const userEmail = Session.getActiveUser().getEmail();
+
+    // Ensure the selected sheet has the proper structure, including 'Reference Number'
+    const headerRow = [
+      "Area",
+      "Timestamp",
+      "Name",
+      "User Email",
+      "Function",
+      "Agency",
+      "Property",
+      "Deficiency",
+      "Photo",
+      "Note",
+      "Reference Number",
+    ];
+    if (databaseSheet.getLastRow() === 0) {
+      databaseSheet.appendRow(headerRow);
+    }
+
+    const folder = DriveApp.getFolderById("1G3taHYClzs--oWdrtcpfDZ2b6J_T3pc-"); // Replace with your folder ID
+
+    // Prepare data rows to be appended
+    const rowsToInsert = [];
+    for (const key in files) {
+      const fileData = files[key];
+      let fileLink = "";
+
+      // Save the file to Google Drive and get its URL, if a file is uploaded
+      if (fileData.data) {
+        const blob = Utilities.newBlob(
+          Utilities.base64Decode(fileData.data),
+          fileData.mimeType,
+          fileData.name
+        );
+        const file = folder.createFile(blob);
+        fileLink = file.getUrl();
+      }
+
+      // Extract Property and Deficiency from the key
+      let property = "Unknown Property";
+      let defect = "Unknown Deficiency";
+      if (key.includes(" - ")) {
+        [property, defect] = key.split(" - ", 2);
+      }
+
+      // Retrieve the note associated with the key
+      const note = data.notes[key] || "";
+
+      // Generate a unique reference number for this row
+      const uniqueReferenceNumber =
+        "REF-" + new Date().getTime() + "-" + Math.floor(Math.random() * 10000);
+
+      // Construct the row data, including the unique reference number
+      rowsToInsert.push([
+        data.selectedSheet, // Area
+        new Date(), // Timestamp
+        data.name, // Name
+        data.email,
+        data.selectedFgi, // Function
+        data.selectedagn, // Agency
+        property, // Property
+        defect, // Deficiency
+        fileLink, // Photo (File Link)
+        note, // Note
+        uniqueReferenceNumber, // Unique Reference Number
+      ]);
+    }
+
+    // Find the first empty row in columns A to K
+    const range = databaseSheet.getRange(2, 1, databaseSheet.getLastRow(), 11); // Starting from row 2 to skip the header
+    const values = range.getValues();
+
+    let emptyRow = -1;
+    for (let i = 0; i < values.length; i++) {
+      const row = values[i];
+      // Check if any of the cells in the row from columns A to K are empty
+      if (row.every((cell) => cell === "")) {
+        emptyRow = i + 2; // Adjusting for header row and 0-indexed loop
+        break;
+      }
+    }
+
+    // If no empty row was found, insert new rows at the end
+    if (emptyRow === -1) {
+      emptyRow = databaseSheet.getLastRow() + 1;
+    }
+
+    // Insert the rows into the sheet
+    if (rowsToInsert.length > 0) {
+      databaseSheet
+        .getRange(emptyRow, 1, rowsToInsert.length, rowsToInsert[0].length)
+        .setValues(rowsToInsert);
+    }
+
+    return "Form submitted successfully!";
+  } catch (error) {
+    Logger.log("Error: %s", error.message);
+    throw new Error("Failed to process your submission. " + error.message);
+  }
+}
+
+// Function to show the custom alert and auto-close after 3 seconds
+function showAutoAlert(message, duration = 3000) {
+  const alertElement = document.getElementById("autoAlert");
+  const messageElement = document.getElementById("alertMessage");
+
+  messageElement.innerText = message;
+  alertElement.style.display = "flex"; // Show the alert
+
+  setTimeout(() => {
+    alertElement.style.display = "none"; // Hide the alert after the duration
+  }, duration);
+}
+
+
+// Session Handling: Save session start time
+function startSession() {
+  var cache = CacheService.getUserCache();
+  cache.put("sessionStart", Date.now().toString(), 1800); // 30 minutes expiry
+  return { success: true };
+}
+
+
+// CODE BELOW FOR AJAX FUNCTION Check if session is expired
+function checkSession() {
+  var cache = CacheService.getUserCache();
+  var sessionStart = cache.get("sessionStart");
+  if (!sessionStart) return { expired: true };
+  
+  var sessionDuration = 30 * 60 * 1000; // 30 minutes
+  if ((Date.now() - parseInt(sessionStart, 10)) > sessionDuration) {
+    cache.remove("sessionStart");
+    return { expired: true };
+  }
+  return { expired: false };
+}
